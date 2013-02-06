@@ -3,8 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "kernwin.hpp"
+#include <ida.hpp>
+#include <idp.hpp>
+#include <kernwin.hpp>
 #include "fpro.h"
+
 byte *load_file(const char *str, size_t *len)
 {
 	FILE *in = qfopen(str, "rb");

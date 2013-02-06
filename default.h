@@ -30,7 +30,8 @@ typedef unsigned long addr_t;
 
 
 // VC 6 for-fix
-#define for if(0);else for
+//Who uses VC6 anymore
+//#define for if(0);else for
 
 #undef min
 #undef max
@@ -49,7 +50,8 @@ template<typename T> void inline swap(T &a, T &b) {
 	b = exch(a, b);
 }
 
-#define inline __forceinline
+//The C++ Standard Library forbids macroizing keywords.
+//#define inline __forceinline
 
 template <typename T, int minsize = 16> class LList {
 	T *mem;
