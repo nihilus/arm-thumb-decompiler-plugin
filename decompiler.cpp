@@ -171,97 +171,143 @@ int CheckSwitchR1(addr_t ea){
 */
 int CheckMySwitch(addr_t ea)
 {
-	if (!((get_word(ea) & 0xFF00) == 0x4600 && //MOV PC, Rx 
+	if ((get_word(ea-0) & 0xFF00) == 0x4600 && //MOV PC, Rx 
 		(get_word(ea-2) & 0xF800) == 0x6800 && //LDR Rx, [Rx]
 		(get_word(ea-4) & 0xFE00) == 0x1800 && //ADD Rx, Rx, Ry
 		(get_word(ea-6) & 0xF800) == 0x4800 && //LDR Ry, =jpt
-		(get_word(ea-8) & 0xFF80) == 0x0080))  //LSLS Rx, Rx, #2
+		(get_word(ea-8) & 0xFF80) == 0x0080)  //LSLS Rx, Rx, #2
 	{
 		//Make sure that the registers are correctly setup
-		return 0;
+		return 1;
 	}
-	return 1;
+
+	if ((get_word(ea-0) & 0xFF00) == 0x4600 && //MOV PC, Rx 
+		(get_word(ea-2) & 0xF800) == 0x5800 && //LDR Rx, [Ry, Rx]
+		(get_word(ea-4) & 0xFF80) == 0x0080 && //LSLS Rx, Rx, #2
+		(get_word(ea-6) & 0xF800) == 0x4800)  //LDR Ry, =jpt
+	{
+		//Make sure that the registers are correctly setup
+		return 2;
+	}
+
+	return 0;
 }
 static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea, Pool &pool, addr_t funcstart, addr_t funcend,long* addrs)
 {
+	int reg=0;
+	int jmpSize=0;
+	addr_t jmptab_addr=0;
 	ArmIns ins;
 	uint switch_max=0;
-	int limit=0;
 	// first check if a switch statement has already been created, only allow a single one
 	for(SwitchStatement *s = ss;s;s=s->next)
 		if (s->ea == ea)
 			return 0;
-/*
-ROM:0807D49C                 CMP     R1, #0x12
-ROM:0807D49E                 BLS     JumpTable
-ROM:0807D4A0                 B       loc_807DAD8     @ jumptable 0807D4AA default case
-*/
-/*
-check for tables with limits
-2YXX 16 CMP X, Y 
-d900 14 BLS blah
-e000 12 B blah
 
+	// If switch information is present in the database, use it for defaults
+	switch_info_ex_t si;
+	if ( get_switch_info_ex(ea, &si, sizeof(si)) > 0 )
+	{
+		//msg("si.jumps  = %08X\n",si.jumps);
+		//msg("si.ncases  = %08X\n",si.ncases);
+		//msg("si.startea  = %08X\n",si.startea);
+		//msg("si.elbase  = %08X\n",si.elbase);
+		//msg("si.get_jtable_element_size()  = %08X\n",si.get_jtable_element_size());
+		//msg("si.get_shift()  = %08X\n",si.get_shift());
+		//msg("si.flags  = %08X\n",si.flags);
+		//msg("si.values  = %08X\n",si.values);
+		//msg("si.get_vtable_element_size()  = %08X\n",si.get_vtable_element_size());
+		//msg("si.regnum  = %08X\n",si.regnum);
 
-*/
-	addr_t defaddr=0;
-	int hasdefault=0;
-if (
-	(get_word(ea-16) & 0x2000 &&
-				get_word(ea-14) & 0xd900 &&
-				get_word(ea-12) & 0xe000 
-				)){
+		switch_max = si.get_jtable_size();
+		jmptab_addr = si.jumps;
+		reg = si.regnum;
+		jmpSize = si.get_jtable_element_size();
+	}
+	else
+	{
+		//If IDA PRO doesn't detect the jump table then try to detect it manually
 
-				switch_max=(get_word(ea-16)&0xFF);
-				hasdefault=1;
-				defaddr=(ea-8)+((signed)(get_word(ea-12)&0xFFF) );//0807D4A0 0xE31A  B       loc_807DAD8
-				
-}
+		/*
+		ROM:0807D49C                 CMP     R1, #0x12
+		ROM:0807D49E                 BLS     JumpTable
+		ROM:0807D4A0                 B       loc_807DAD8     @ jumptable 0807D4AA default case
+		*/
+		/*
+		check for tables with limits
+		2YXX 16 CMP X, Y 
+		d900 14 BLS blah
+		e000 12 B blah
+		*/
+		jmpSize = 4; //Default to 4 bytes for a jump table
+		addr_t defaddr=0;
+		int hasdefault=0;
+		if (get_word(ea-16) & 0x2000 &&
+			get_word(ea-14) & 0xd900 &&
+			get_word(ea-12) & 0xe000)
+		{
+			switch_max=(get_word(ea-16)&0xFF);
+			hasdefault=1;
+			defaddr=(ea-8)+((signed)(get_word(ea-12)&0xFFF) );//0807D4A0 0xE31A  B       loc_807DAD8		
+		}
 
-if(CheckMySwitch(ea)){//CheckSwitchR0(ea)==0&&CheckSwitchR1(ea)==0){
-	msg("No switches\n");
-	return 0;
-}
-char test[255]={0};
-sprintf(test,"THIS MAY NOT WORK BUT MAX VAL IS %x\n",switch_max);
-msg(test);
-	int reg = (get_word(ea-8) >> 3) & 7;
+		msg("ea  = %08X\n",ea);
 
-// indeed it does..
-// determine the address of the switch's jumptable
-	DecodeThumb(ins, ea - 6);
-	assert(ins.mnem == O_MOV && ins.op[1].type == O_IMM);
-	addr_t jmptab_addr = ins.op[1].value;
+		int jumpTableType = CheckMySwitch(ea);
+		msg("jumpTableType = %d\n",jumpTableType);
 
-	// max number of items in switchtable
-	
+		if(jumpTableType == 0)
+		{
+			msg("No switches\n");
+			return 0;
+		}
+		msg("switch_max = %x\n",switch_max);
 
-	// try to determine the number of items in the jumptable
-	msg("jmptab=%x\nyAt offset %x\n", jmptab_addr,ea);
-	if(switch_max==0){//If we didn't have a BLS table earlier..
-		if (reg == 0 &&
-				(get_word(ea - 10) & 0xff00) == 0xd800 &&
-				(get_word(ea - 12) & 0xff00) == 0x2800) {
-			switch_max = get_byte(ea - 12) + 1;
-		} else {
-			for(uint i=0; ; i++) {
-				addr_t x = get_long(jmptab_addr + i * 4);
+		int offset1 = ea - 8; //LSLS Rx, Rx, #2
+		int offset2 = ea - 6; //LDR Ry, =jpt
+
+		if(jumpTableType == 2)
+		{
+			offset1 = ea - 4;
+		}
+
+		int reg = (get_word(offset1) >> 3) & 7; //LSLS Rx, Rx, #2
+
+	// indeed it does..
+	// determine the address of the switch's jumptable
+		DecodeThumb(ins, offset2); ////LDR Ry, =jpt
+		assert(ins.mnem == O_MOV && ins.op[1].type == O_IMM);
+		jmptab_addr = ins.op[1].value;
+
+		// max number of items in switch table
+
+		// try to determine the number of items in the jump table
+		msg("jmptab=%x\nyAt offset %x\n", jmptab_addr,ea);
+		if(switch_max==0){//If we didn't have a BLS table earlier..
+			if (reg == 0 &&
+					(get_word(ea - 10) & 0xff00) == 0xd800 &&
+					(get_word(ea - 12) & 0xff00) == 0x2800) {
+				switch_max = get_byte(ea - 12) + 1;
+			} else {
+				for(uint i=0; ; i++) {
+					addr_t x = get_long(jmptab_addr + i * 4);
 		
-				if (0==(x & 0x8FFFFFF)||(x|0x8FFFFFF) > (funcend|0x80000000)) {
-					switch_max = i-1;
-					break;
+					if (0==(x & 0x8FFFFFF)||(x|0x8FFFFFF) > (funcend|0x80000000)) {
+						switch_max = i-1;
+						break;
+					}
+					msg("Address: %x\n", x);
 				}
-				msg("Address: %x\n", x);
 			}
 		}
-	}
-	msg("Max: %d\n", switch_max);
-	// make sure the switch items are inside the function bounds
-	/*for(uint i=0; i!=switch_max; i++) {
-		addr_t x = get_long(jmptab_addr + i * 4);
-		if (x < ea || x > funcend) return 0;
-	}*/
+		msg("Max: %d\n", switch_max);
+		// make sure the switch items are inside the function bounds
+		/*for(uint i=0; i!=switch_max; i++) {
+			addr_t x = get_long(jmptab_addr + i * 4);
+			if (x < ea || x > funcend) return 0;
+		}*/
 
+	}
 	SwitchStatement *s = (SwitchStatement*)pool.Alloc(sizeof(SwitchStatement) + switch_max * sizeof(addr_t));
 
 	s->ea = ea;
