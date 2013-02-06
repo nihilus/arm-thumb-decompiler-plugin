@@ -129,60 +129,58 @@ static SwitchStatement *GetSwitchAt(SwitchStatement *s, addr_t ea)
 /*Severly old
 int CheckSwitchR0(addr_t ea){
 	//Using R0
-// verify that it matches the switch sequence.
-//ROM:080003A4 80 00   LSL   R0, R0, #2
-//ROM:080003A6 02 49   LDR   R1, =off_83C173C
-//ROM:080003A8 40 18   ADD   R0, R0, R1
-//ROM:080003AA 00 68   LDR   R0, [R0]
-//ROM:080003AC 87 46   MOV   PC, R0
-		      if (!(get_word(ea) == 0x4687 &&
-				get_word(ea-2) == 0x6800 &&
-				get_word(ea-4) == 0x1840 &&
-				(get_word(ea-6) & 0xff00) == 0x4900 &&
-				(get_word(ea-8)&~0x38) == 0x0080))
+	// verify that it matches the switch sequence.
+	//ROM:080003A4 80 00   LSL   R0, R0, #2
+	//ROM:080003A6 02 49   LDR   R1, =off_83C173C
+	//ROM:080003A8 40 18   ADD   R0, R0, R1
+	//ROM:080003AA 00 68   LDR   R0, [R0]
+	//ROM:080003AC 87 46   MOV   PC, R0
+	if (!(get_word(ea) == 0x4687 &&
+		get_word(ea-2) == 0x6800 &&
+		get_word(ea-4) == 0x1840 &&
+		(get_word(ea-6) & 0xff00) == 0x4900 &&
+		(get_word(ea-8)&~0x38) == 0x0080))
+	{
 		return 0;
+	}
 
 
-			  return 1;
-
+	return 1;
 }
 
 int CheckSwitchR1(addr_t ea){
 	char err[1024]={0};
 	//Using R0
-// verify that it matches the switch sequence.
-//ROM:0807D4A2  89 00          LSLS    R1, R1, #2
-//ROM:0807D4A4  01 4A          LDR     R2, =jpt_807D4AA
-//ROM:0807D4A6  89 18          ADDS    R1, R1, R2
-//ROM:0807D4A8  09 68          LDR     R1, [R1]
-//ROM:0807D4AA  8f 46          MOV     PC, R1        
-		      if (!(get_word(ea) == 0x468F &&
-				get_word(ea-2) == 0x6809 &&
-				get_word(ea-4) == 0x1889 &&
-				(get_word(ea-6) & 0xff00) == 0x4A00 &&
-				(get_word(ea-8)) == 0x0089)){
-			
-
-
+	// verify that it matches the switch sequence.
+	//ROM:0807D4A2  89 00          LSLS    R1, R1, #2
+	//ROM:0807D4A4  01 4A          LDR     R2, =jpt_807D4AA
+	//ROM:0807D4A6  89 18          ADDS    R1, R1, R2
+	//ROM:0807D4A8  09 68          LDR     R1, [R1]
+	//ROM:0807D4AA  8f 46          MOV     PC, R1        
+	if (!(get_word(ea) == 0x468F &&
+		get_word(ea-2) == 0x6809 &&
+		get_word(ea-4) == 0x1889 &&
+		(get_word(ea-6) & 0xff00) == 0x4A00 &&
+		(get_word(ea-8)) == 0x0089))
+	{
 		return 0;
-
-			  }
-			  msg("R1 switch obtained!\n");
-			  return 1;
-
-
+	}
+	msg("R1 switch obtained!\n");
+	return 1;
 }
 */
-int CheckMySwitch(addr_t ea){//If someone has a better idea, here's the code! 
-	       if (!((get_word(ea)&0x4600) == 0x4600 &&
-				(get_word(ea-2)&0x6800) == 0x6800 &&
-				(get_word(ea-4) & 0x1800) == 0x1889 &&
-				(get_word(ea-6) & 0xff00) == 0x4A00 &&
-				(get_word(ea-8) & 0x0080) == 0x0080)){
-					return 0;
-		   }
-		   return 1;
-
+int CheckMySwitch(addr_t ea)
+{
+	if (!((get_word(ea) & 0xFF00) == 0x4600 && //MOV PC, Rx 
+		(get_word(ea-2) & 0xF800) == 0x6800 && //LDR Rx, [Rx]
+		(get_word(ea-4) & 0xFE00) == 0x1800 && //ADD Rx, Rx, Ry
+		(get_word(ea-6) & 0xF800) == 0x4800 && //LDR Ry, =jpt
+		(get_word(ea-8) & 0xFF80) == 0x0080))  //LSLS Rx, Rx, #2
+	{
+		//Make sure that the registers are correctly setup
+		return 0;
+	}
+	return 1;
 }
 static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea, Pool &pool, addr_t funcstart, addr_t funcend,long* addrs)
 {
@@ -335,7 +333,7 @@ bool Analyzer::AnalyzeOwn(ea_t start, ea_t end)
 			}
 
 			// check if the instruction references code in this function?
-			if ((ins.mnem == O_B || ins.mnem == O_BL && ins.op[0].value != start || ins.mnem >= O_BEQ && ins.mnem <= O_BLE) && ins.op[0].value >= start && ins.op[0].value < end) {
+			if (((ins.mnem == O_B || ins.mnem == O_BL) && ins.op[0].value != start || (ins.mnem >= O_BEQ && ins.mnem <= O_BLE)) && ins.op[0].value >= start && ins.op[0].value < end) {
 				// insert a jump destination.
 				if (InsertJmpDst(first_dst, ins.op[0].value, pool) && ins.op[0].value <= ea)
 					changes = true;
@@ -385,7 +383,7 @@ getout:;
 			return false;
 		}
 
-		if ((ins.mnem == O_B || ins.mnem == O_BL && ins.op[0].value != start) && ins.op[0].value >= start && ins.op[0].value < end) {
+		if (((ins.mnem == O_B || ins.mnem == O_BL) && ins.op[0].value != start) && ins.op[0].value >= start && ins.op[0].value < end) {
 			bb->flow = GetBasblockAt(ins.op[0].value);
 			bb->flow->ref++;
 			flow = false;
@@ -498,13 +496,16 @@ static uint32 GetCallingConventionFor(ea_t addr)
 
 		// parse the number of arguments
 		int len = strlen(buf);
-		if (buf[len-1] == ')' && buf[len-2] == '(') {
-			args = 0;
-		} else {
-			args++;
-			for(int i=0; buf[i]; i++)
-				if (buf[i] == ',')
-					args++;
+		if(len > 0)
+		{
+			if (buf[len-1] == ')' && buf[len-2] == '(') {
+				args = 0;
+			} else {
+				args++;
+				for(int i=0; buf[i]; i++)
+					if (buf[i] == ',')
+						args++;
+			}
 		}
 
 		// remember # args
@@ -1949,7 +1950,7 @@ Exp *GetIfExp(BasicBlock *bb)
 bool IsReturn(BasicBlock *bb)
 {
 	return bb->flow == NULL &&
-		(bb->num_instr == 0 || bb->num_instr == 1 && bb->instr[bb->num_instr-1].e->type == E_RETURN);
+		((bb->num_instr == 0 || bb->num_instr == 1) && bb->instr[bb->num_instr-1].e->type == E_RETURN);
 }
 
 static Exp *GetReturnExp(BasicBlock *bb)
