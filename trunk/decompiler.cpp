@@ -113,10 +113,12 @@ struct SwitchStatement {
 	SwitchStatement *next;
 	uint num_edges;
 	uint reg;
+	addr_t ea_start; // address of ldr rx, =jmptbl
 	addr_t ea; // address of mov pc,?? instr
 	addr_t edges[1]; // edges
 	int hasdefault;
 	addr_t defaultadd;
+
 };
 
 static SwitchStatement *GetSwitchAt(SwitchStatement *s, addr_t ea)
@@ -197,6 +199,7 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 	int reg=0;
 	int jmpSize=0;
 	addr_t jmptab_addr=0;
+	addr_t ea_start=0;
 	ArmIns ins;
 	uint switch_max=0;
 	// first check if a switch statement has already been created, only allow a single one
@@ -205,26 +208,42 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 			return 0;
 
 	// If switch information is present in the database, use it for defaults
-	switch_info_ex_t si;
-	if ( get_switch_info_ex(ea, &si, sizeof(si)) > 0 )
-	{
-		//msg("si.jumps  = %08X\n",si.jumps);
-		//msg("si.ncases  = %08X\n",si.ncases);
-		//msg("si.startea  = %08X\n",si.startea);
-		//msg("si.elbase  = %08X\n",si.elbase);
-		//msg("si.get_jtable_element_size()  = %08X\n",si.get_jtable_element_size());
-		//msg("si.get_shift()  = %08X\n",si.get_shift());
-		//msg("si.flags  = %08X\n",si.flags);
-		//msg("si.values  = %08X\n",si.values);
-		//msg("si.get_vtable_element_size()  = %08X\n",si.get_vtable_element_size());
-		//msg("si.regnum  = %08X\n",si.regnum);
+	//switch_info_ex_t si;
+	//if ( get_switch_info_ex(ea, &si, sizeof(si)) > 0 )
+	//{
+	//	msg("si.jumps  = %08X\n",si.jumps);
+	//	msg("si.ncases  = %08X\n",si.ncases);
+	//	msg("si.jcases  = %08X\n",si.jcases);
+	//	msg("si.startea  = %08X\n",si.startea);
+	//	msg("si.elbase  = %08X\n",si.elbase);
+	//	msg("si.get_jtable_element_size()  = %08X\n",si.get_jtable_element_size());
+	//	msg("si.get_shift()  = %08X\n",si.get_shift());
+	//	msg("si.flags  = %08X\n",si.flags);
+	//	msg("si.values  = %08X\n",si.values);
+	//	msg("si.get_vtable_element_size()  = %08X\n",si.get_vtable_element_size());
+	//	msg("si.regnum  = %08X\n",si.regnum);
+	//	msg("si.regdtyp  = %08X\n",si.regdtyp);
+	//	msg("si.defjump  = %08X\n",si.defjump);
+	//	msg("si.cb  = %08X\n",si.cb);
+	//	msg("si.flags2  = %08X\n",si.flags2);
+	//	msg("si.is_indirect()  = %08X\n",si.is_indirect());
+	//	msg("si.is_subtract()  = %08X\n",si.is_subtract());
 
-		switch_max = si.get_jtable_size();
-		jmptab_addr = si.jumps;
-		reg = si.regnum;
-		jmpSize = si.get_jtable_element_size();
-	}
-	else
+	//	msg("get_switch_parent(ea)  = %08X\n",get_switch_parent(ea));
+
+	//	switch_max = si.get_jtable_size();
+	//	jmptab_addr = si.jumps;
+	//	reg = si.regnum;
+	//	jmpSize = si.get_jtable_element_size();
+
+	//	msg("get_next_dref_from(jmptab_addr,ea)  = %08X\n",get_next_dref_from(jmptab_addr,ea));
+	//	msg("get_next_dref_to(jmptab_addr,ea)  = %08X\n",get_next_dref_to(jmptab_addr,ea));
+	//	msg("get_first_dref_to(jmptab_addr)  = %08X\n",get_first_dref_to(jmptab_addr));
+
+	//	//This will only work if only one method uses this jump table (Which should be most of the time)
+	//	ea_start = get_first_dref_to(jmptab_addr);
+	//}
+	//else
 	{
 		//If IDA PRO doesn't detect the jump table then try to detect it manually
 
@@ -265,16 +284,19 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 
 		int offset1 = ea - 8; //LSLS Rx, Rx, #2
 		int offset2 = ea - 6; //LDR Ry, =jpt
+		
+		ea_start = ea - 8; //Default start address
 
 		if(jumpTableType == 2)
 		{
 			offset1 = ea - 4;
+			ea_start = ea - 6;
 		}
 
 		int reg = (get_word(offset1) >> 3) & 7; //LSLS Rx, Rx, #2
 
-	// indeed it does..
-	// determine the address of the switch's jumptable
+		// indeed it does..
+		// determine the address of the switch's jumptable
 		DecodeThumb(ins, offset2); ////LDR Ry, =jpt
 		assert(ins.mnem == O_MOV && ins.op[1].type == O_IMM);
 		jmptab_addr = ins.op[1].value;
@@ -315,6 +337,7 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 	ss = s;
 	s->num_edges = switch_max;
 	s->reg = reg;
+	s->ea_start = ea_start;
 
 	for(uint i=0; i!=switch_max; i++) {
 		s->edges[i] = get_long(jmptab_addr + i * 4);
@@ -327,11 +350,15 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 
 bool Analyzer::CreateSwitchConds(BasicBlock *bb, SwitchStatement *s)
 {
-	if (bb->num_instr < 5)
+	int num_jmptbl_lookup_instr = ((s->ea - s->ea_start)/2) + 1;
+	msg("s->ea = %08X\n", s->ea);
+	msg("s->ea_start = %08X\n", s->ea_start);
+	msg("num_jmptbl_lookup_instr = %d\n", num_jmptbl_lookup_instr);
+	if (bb->num_instr < num_jmptbl_lookup_instr)
 		return false;
 
 	// delete the last 5 instructions...
-	bb->instr.SetCount(bb->num_instr - 5);
+	bb->instr.SetCount(bb->num_instr - num_jmptbl_lookup_instr);
 
 	if (s->num_edges == 1) {
 		// special case.. only a single edge going out?!
@@ -385,7 +412,7 @@ bool Analyzer::AnalyzeOwn(ea_t start, ea_t end)
 					changes = true;
 			}
 			ea += len;
-			if (InstructionEndsFlow(ins) || ins.mnem == O_BL && ins.op[0].value > start && ins.op[0].value < end) {
+			if ((InstructionEndsFlow(ins) || ins.mnem == O_BL) && ins.op[0].value > start && ins.op[0].value < end) {
 				// need to determine if it's a switch statement.
 				// if it is a switch statement, then jump destinations for the switch statement need to be determined
 				if (ins.mnem == O_MOV && ins.op[0].reg == 15) {

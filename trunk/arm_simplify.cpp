@@ -446,7 +446,7 @@ void out_simplify()
 
 	if (s != cmd.size) {
 		msg("size %d vs %d at %x\n", s, cmd.size, cmd.ea);
-		do_unknown_range(cmd.ea, s > cmd.size ? s : cmd.size, false);
+		do_unknown_range(cmd.ea, s > cmd.size ? s : cmd.size, 0);
 		MakeLine("<patched>");
 		return;
 	}
