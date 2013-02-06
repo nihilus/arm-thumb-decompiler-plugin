@@ -160,7 +160,7 @@ static void outreg(uint r)
 static void outdispl(uint r, uint t, uint32 num)
 {
 	outbyte(4);
-	outbyte( (r << 4) | (t & 0xF) );
+	outbyte((r << 4) | (t & 0xF));
 	outbyte(byte(num));
 	outbyte(byte(num>>8));
 }
@@ -1194,7 +1194,7 @@ void importtodb(ea_t addr, ea_t addr_end)
 		_need_refresh = true;
 	//} else if (first_bad == addr) {
 		// need to remake the whole function
-		do_unknown_range(addr, addr_end - addr, false);
+		do_unknown_range(addr, addr_end - addr, 0);
 		analyze_area(addr, addr_end);
 		add_func(addr, addr_end);
 		_need_refresh = true;
@@ -1334,10 +1334,10 @@ void killpseudo()
 	}
 
 	msg("Killing pseudo code from %x to %x\n", start, ea);
-	do_unknown_range(start, ea - start, false);
-			analyze_area(start, ea);
-		add_func(start, ea);
-		_need_refresh = true;
+	do_unknown_range(start, ea - start, 0);
+	analyze_area(start, ea);
+	add_func(start, ea);
+	_need_refresh = true;
 }
 
 ea_t get_orig_addr_from(ea_t ea)

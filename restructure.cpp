@@ -587,7 +587,7 @@ void Analyzer::InsertReturnStatements(bool returns)
 	ComputeBBOrder();
 
 	for(BasicBlock *bb = _list; bb; bb=bb->next) {
-		if (!bb->flow || returns && bb->cond == NULL && IsReturn(bb->flow)) {
+		if ((!bb->flow || returns) && bb->cond == NULL && IsReturn(bb->flow)) {
 			assert(!bb->cond);
 
 			Instr &i = bb->instr.Append();
