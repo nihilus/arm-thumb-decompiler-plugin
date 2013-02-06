@@ -218,7 +218,7 @@ int kill_manual(ea_t ea, int *nchain)
 int is_register_name(char *s) {
 	int r;
 	char *end;
-	if (*s != 'r' && *s != 'R' || s[1] == 0 || s[2] != 0 && s[3] != 0) return -1;
+	if ((*s != 'r' && *s != 'R') || s[1] == 0 || s[2] != 0 && s[3] != 0) return -1;
 	r = strtoul(s + 1, &end, 10);
 	if (*end != 0 || r >= 16) return -1; 
 	return r;	

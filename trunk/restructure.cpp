@@ -758,7 +758,7 @@ void TrySimplifyStore(Exp *&value, Exp *ea, byte &type, byte &oper)
 		return;
 
 	if (IsLoadOfType(load=v->bin.left, ea, type) || 
-			IsCommutative(v->bin.subtype) && IsLoadOfType(load=v->bin.right, ea, type)) {
+			(IsCommutative(v->bin.subtype) && IsLoadOfType(load=v->bin.right, ea, type))) {
 		// good to go!
 		oper = v->bin.subtype;
 		type = load->load.subtype;

@@ -519,7 +519,7 @@ static void outbb(BasicBlock *bb, int indent)
 
 static EmittedEnt *SkipEmptyEE(EmittedEnt *ee)
 {
-	while (ee->type == EE_BAS && !ee->bas.bas->need_label && (ee->bas.bas->num_instr == 0 || ee->bas.bas->num_instr == 1 && ee->bas.bas->cond) && ee->next)
+	while (ee->type == EE_BAS && !ee->bas.bas->need_label && ((ee->bas.bas->num_instr == 0 || ee->bas.bas->num_instr == 1) && ee->bas.bas->cond) && ee->next)
 		ee = ee->next;
 	return ee;
 }
