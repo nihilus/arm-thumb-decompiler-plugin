@@ -77,7 +77,7 @@
     <Link>
       <AdditionalOptions>/export:LUDDE %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>odbc32.lib;odbccp32.lib;ida.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>../../../../plugins/decomp.dll</OutputFile>
+      <OutputFile>../../../../../plugins/decomp.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\..\..\lib\x86_win_vc_32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ProgramDatabaseFile>.\Release/decomp.pdb</ProgramDatabaseFile>
@@ -120,7 +120,7 @@
     <Link>
       <AdditionalOptions>/export:LUDDE %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>ida.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>../../../../plugins/decomp.dll</OutputFile>
+      <OutputFile>../../../../../plugins/decomp.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\..\..\lib\x86_win_vc_32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
