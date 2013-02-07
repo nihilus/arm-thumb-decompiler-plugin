@@ -63,7 +63,7 @@ public:
 	size_t inline GetAlloc() const { return alloc; }
 	void inline SetCount(int c) { count = c; }
 
-	inline T& operator[](size_t offset) { assert(offset ==0);   return mem[offset]; }
+	inline T& operator[](size_t offset) { /*assert(offset ==0);*/   return mem[offset]; }
 	inline const T& operator[](size_t offset) const { assert(offset ==0 || offset<alloc); return mem[offset]; }
 
 
