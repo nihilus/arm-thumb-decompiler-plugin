@@ -118,7 +118,6 @@ struct SwitchStatement {
 	addr_t edges[1]; // edges
 	int hasdefault;
 	addr_t defaultadd;
-
 };
 
 static SwitchStatement *GetSwitchAt(SwitchStatement *s, addr_t ea)
@@ -197,11 +196,12 @@ int CheckMySwitch(addr_t ea)
 static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea, Pool &pool, addr_t funcstart, addr_t funcend,long* addrs)
 {
 	int reg=0;
-	int jmpSize=0;
+	int jmpSize=4;
 	addr_t jmptab_addr=0;
 	addr_t ea_start=0;
 	ArmIns ins;
 	uint switch_max=0;
+	int limit=0;
 	// first check if a switch statement has already been created, only allow a single one
 	for(SwitchStatement *s = ss;s;s=s->next)
 		if (s->ea == ea)
@@ -211,37 +211,37 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 	//switch_info_ex_t si;
 	//if ( get_switch_info_ex(ea, &si, sizeof(si)) > 0 )
 	//{
-	//	msg("si.jumps  = %08X\n",si.jumps);
-	//	msg("si.ncases  = %08X\n",si.ncases);
-	//	msg("si.jcases  = %08X\n",si.jcases);
-	//	msg("si.startea  = %08X\n",si.startea);
-	//	msg("si.elbase  = %08X\n",si.elbase);
-	//	msg("si.get_jtable_element_size()  = %08X\n",si.get_jtable_element_size());
-	//	msg("si.get_shift()  = %08X\n",si.get_shift());
-	//	msg("si.flags  = %08X\n",si.flags);
-	//	msg("si.values  = %08X\n",si.values);
-	//	msg("si.get_vtable_element_size()  = %08X\n",si.get_vtable_element_size());
-	//	msg("si.regnum  = %08X\n",si.regnum);
-	//	msg("si.regdtyp  = %08X\n",si.regdtyp);
-	//	msg("si.defjump  = %08X\n",si.defjump);
-	//	msg("si.cb  = %08X\n",si.cb);
-	//	msg("si.flags2  = %08X\n",si.flags2);
-	//	msg("si.is_indirect()  = %08X\n",si.is_indirect());
-	//	msg("si.is_subtract()  = %08X\n",si.is_subtract());
+	//      msg("si.jumps  = %08X\n",si.jumps);
+	//      msg("si.ncases  = %08X\n",si.ncases);
+	//      msg("si.jcases  = %08X\n",si.jcases);
+	//      msg("si.startea  = %08X\n",si.startea);
+	//      msg("si.elbase  = %08X\n",si.elbase);
+	//      msg("si.get_jtable_element_size()  = %08X\n",si.get_jtable_element_size());
+	//      msg("si.get_shift()  = %08X\n",si.get_shift());
+	//      msg("si.flags  = %08X\n",si.flags);
+	//      msg("si.values  = %08X\n",si.values);
+	//      msg("si.get_vtable_element_size()  = %08X\n",si.get_vtable_element_size());
+	//      msg("si.regnum  = %08X\n",si.regnum);
+	//      msg("si.regdtyp  = %08X\n",si.regdtyp);
+	//      msg("si.defjump  = %08X\n",si.defjump);
+	//      msg("si.cb  = %08X\n",si.cb);
+	//      msg("si.flags2  = %08X\n",si.flags2);
+	//      msg("si.is_indirect()  = %08X\n",si.is_indirect());
+	//      msg("si.is_subtract()  = %08X\n",si.is_subtract());
 
-	//	msg("get_switch_parent(ea)  = %08X\n",get_switch_parent(ea));
+	//      msg("get_switch_parent(ea)  = %08X\n",get_switch_parent(ea));
 
-	//	switch_max = si.get_jtable_size();
-	//	jmptab_addr = si.jumps;
-	//	reg = si.regnum;
-	//	jmpSize = si.get_jtable_element_size();
+	//      switch_max = si.get_jtable_size();
+	//      jmptab_addr = si.jumps;
+	//      reg = si.regnum;
+	//      jmpSize = si.get_jtable_element_size();
 
-	//	msg("get_next_dref_from(jmptab_addr,ea)  = %08X\n",get_next_dref_from(jmptab_addr,ea));
-	//	msg("get_next_dref_to(jmptab_addr,ea)  = %08X\n",get_next_dref_to(jmptab_addr,ea));
-	//	msg("get_first_dref_to(jmptab_addr)  = %08X\n",get_first_dref_to(jmptab_addr));
+	//      msg("get_next_dref_from(jmptab_addr,ea)  = %08X\n",get_next_dref_from(jmptab_addr,ea));
+	//      msg("get_next_dref_to(jmptab_addr,ea)  = %08X\n",get_next_dref_to(jmptab_addr,ea));
+	//      msg("get_first_dref_to(jmptab_addr)  = %08X\n",get_first_dref_to(jmptab_addr));
 
-	//	//This will only work if only one method uses this jump table (Which should be most of the time)
-	//	ea_start = get_first_dref_to(jmptab_addr);
+	//      //This will only work if only one method uses this jump table (Which should be most of the time)
+	//      ea_start = get_first_dref_to(jmptab_addr);
 	//}
 	//else
 	{
@@ -257,34 +257,33 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 		2YXX 16 CMP X, Y 
 		d900 14 BLS blah
 		e000 12 B blah
-		*/
-		jmpSize = 4; //Default to 4 bytes for a jump table
-		addr_t defaddr=0;
-		int hasdefault=0;
-		if (get_word(ea-16) & 0x2000 &&
-			get_word(ea-14) & 0xd900 &&
-			get_word(ea-12) & 0xe000)
-		{
-			switch_max=(get_word(ea-16)&0xFF);
-			hasdefault=1;
-			defaddr=(ea-8)+((signed)(get_word(ea-12)&0xFFF) );//0807D4A0 0xE31A  B       loc_807DAD8		
-		}
 
+
+		//*/
+		//addr_t defaddr=0;
+		//int hasdefault=0;
+		//if (get_word(ea-16) & 0x2000 &&
+		//	get_word(ea-14) & 0xd900 &&
+		//	get_word(ea-12) & 0xe000)
+		//{
+		//	switch_max=(get_word(ea-16)&0xFF);
+		//	hasdefault=1;
+		//	defaddr=(ea-8)+((signed)(get_word(ea-12)&0xFFF) );//0807D4A0 0xE31A  B       loc_807DAD8		
+		//}
 		msg("ea  = %08X\n",ea);
 
 		int jumpTableType = CheckMySwitch(ea);
 		msg("jumpTableType = %d\n",jumpTableType);
-
 		if(jumpTableType == 0)
 		{
 			msg("No switches\n");
 			return 0;
 		}
-		msg("switch_max = %x\n",switch_max);
 
 		int offset1 = ea - 8; //LSLS Rx, Rx, #2
 		int offset2 = ea - 6; //LDR Ry, =jpt
-		
+		int offset3 = ea - 10; //BHI Somewhere
+		int offset4 = ea - 12; //CMP Rx, #xx
 		ea_start = ea - 8; //Default start address
 
 		if(jumpTableType == 2)
@@ -293,24 +292,45 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 			ea_start = ea - 6;
 		}
 
-		int reg = (get_word(offset1) >> 3) & 7; //LSLS Rx, Rx, #2
+		reg = (get_word(offset1) >> 3) & 7; //LSLS Rx, Rx, #2
 
 		// indeed it does..
 		// determine the address of the switch's jumptable
-		DecodeThumb(ins, offset2); ////LDR Ry, =jpt
+		DecodeThumb(ins, offset2);
 		assert(ins.mnem == O_MOV && ins.op[1].type == O_IMM);
 		jmptab_addr = ins.op[1].value;
 
-		// max number of items in switch table
+		// max number of items in switchtable
+	
 
-		// try to determine the number of items in the jump table
+		// try to determine the number of items in the jumptable
 		msg("jmptab=%x\nyAt offset %x\n", jmptab_addr,ea);
-		if(switch_max==0){//If we didn't have a BLS table earlier..
-			if (reg == 0 &&
-					(get_word(ea - 10) & 0xff00) == 0xd800 &&
-					(get_word(ea - 12) & 0xff00) == 0x2800) {
-				switch_max = get_byte(ea - 12) + 1;
-			} else {
+		if(switch_max==0)
+		{
+			bool found = false;
+			//If we didn't have a BLS table earlier..
+			for(int i=offset2; i>offset2-0x10; i-=2)
+			{
+				msg("searching at %08X\n",i);
+				if ((get_word(i) & 0xFF00) == 0xD800 && //BHI Somewhere
+					(get_word(i-2) & 0xF800) == 0x2800) //CMP Rx, #xx
+				{
+					msg("found switch_max at %08X\n",i-2);
+					switch_max = get_byte(i-2) + 1;
+					found = true;
+					break;
+				} 
+				else if ((get_word(i) & 0xFF00) == 0xD900 && //BLS JumpTable
+						(get_word(i-2) & 0xF800) == 0x2800) //CMP Rx, #xx
+				{
+					msg("found switch_max at %08X\n",i-2);
+					switch_max = get_byte(i-2) - 1;
+					found = true;
+					break;
+				} 
+			}
+			if(!found)
+			{
 				for(uint i=0; ; i++) {
 					addr_t x = get_long(jmptab_addr + i * 4);
 		
@@ -328,8 +348,8 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 			addr_t x = get_long(jmptab_addr + i * 4);
 			if (x < ea || x > funcend) return 0;
 		}*/
-
 	}
+
 	SwitchStatement *s = (SwitchStatement*)pool.Alloc(sizeof(SwitchStatement) + switch_max * sizeof(addr_t));
 
 	s->ea = ea;
@@ -412,7 +432,7 @@ bool Analyzer::AnalyzeOwn(ea_t start, ea_t end)
 					changes = true;
 			}
 			ea += len;
-			if ((InstructionEndsFlow(ins) || ins.mnem == O_BL) && ins.op[0].value > start && ins.op[0].value < end) {
+			if (InstructionEndsFlow(ins) || ins.mnem == O_BL && ins.op[0].value > start && ins.op[0].value < end) {
 				// need to determine if it's a switch statement.
 				// if it is a switch statement, then jump destinations for the switch statement need to be determined
 				if (ins.mnem == O_MOV && ins.op[0].reg == 15) {
