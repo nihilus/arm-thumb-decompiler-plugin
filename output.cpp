@@ -519,7 +519,7 @@ static void outbb(BasicBlock *bb, int indent)
 
 static EmittedEnt *SkipEmptyEE(EmittedEnt *ee)
 {
-	while (ee->type == EE_BAS && !ee->bas.bas->need_label && ((ee->bas.bas->num_instr == 0 || ee->bas.bas->num_instr == 1) && ee->bas.bas->cond) && ee->next)
+	while (ee->type == EE_BAS && !ee->bas.bas->need_label && (ee->bas.bas->num_instr == 0 || (ee->bas.bas->num_instr == 1 && ee->bas.bas->cond)) && ee->next)
 		ee = ee->next;
 	return ee;
 }
@@ -1259,7 +1259,7 @@ void rundec(ea_t ea = get_screen_ea())
 	ana.Init();
 //	msg("\nanainited\n");
 	func_t *func = get_func(ea);
-	uint32 tm = rdtsc();
+	//uint32 tm = rdtsc();
 
 	if (!func)  {
 		msg("No such function at %x\n", get_screen_ea());
@@ -1285,7 +1285,7 @@ void rundec(ea_t ea = get_screen_ea())
 	linepos = 0;
 	lines.Init();
 	ana.Dump2();
-	tm = rdtsc() - tm;
+	//tm = rdtsc() - tm;
 
 //	char buf[128];
 //	msg("%s decompiled. clocks=%d\n", get_name(BADADDR, func->startEA, buf, sizeof(buf)), tm);
@@ -1586,7 +1586,7 @@ void fixgd(ea_t base, char *prefix)
 
 void testme(int entry)
 {
-	__try {
+	//__try {
 
 //		char buf[1024];
 //		generate_disasm_line(get_screen_ea(), buf, sizeof(buf));
@@ -1612,9 +1612,9 @@ void testme(int entry)
 			refresh_idaview_anyway();
 
 
-	} __except(1) {
-		msg("Exception\n");
-	}
+	//} __except(1) {
+	//	msg("Exception\n");
+	//}
 //	msg("Foobar2\n");
 }
 

@@ -586,8 +586,25 @@ void Analyzer::InsertReturnStatements(bool returns)
 {
 	ComputeBBOrder();
 
-	for(BasicBlock *bb = _list; bb; bb=bb->next) {
-		if ((!bb->flow || returns) && bb->cond == NULL && IsReturn(bb->flow)) {
+	//msg("returns = %08X\n",returns);
+	//msg("_list = %08X\n",&_list);
+
+	for(BasicBlock *bb = _list; bb; bb=bb->next) 
+	{
+		//msg("bb->base = %08X\n",bb->base);
+		//msg("bb->cond = %08X\n",bb->cond);
+		//msg("&bb->flow = %08X\n",&bb->flow);
+		//msg("bb->flow = %08X\n",bb->flow);
+		//msg("bb->num_instr = %08X\n",bb->num_instr);
+		//for(int j=0; j<bb->num_instr; j++)
+		//{
+		//	msg("bb->instr[%d] = %08X\n",j,bb->instr[j]);
+		//	msg("bb->instr[%d].e = %08X\n",j,bb->instr[j].e);
+		//	msg("bb->instr[%d].e->type = %08X\n",j,bb->instr[j].e->type);
+		//}
+		if (!bb->flow || (returns && bb->cond == NULL) && IsReturn(bb->flow))
+		{
+			msg("got here\n");
 			assert(!bb->cond);
 
 			Instr &i = bb->instr.Append();

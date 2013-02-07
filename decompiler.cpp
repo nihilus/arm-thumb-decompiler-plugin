@@ -2043,7 +2043,7 @@ Exp *GetIfExp(BasicBlock *bb)
 bool IsReturn(BasicBlock *bb)
 {
 	return bb->flow == NULL &&
-		((bb->num_instr == 0 || bb->num_instr == 1) && bb->instr[bb->num_instr-1].e->type == E_RETURN);
+		(bb->num_instr == 0 || (bb->num_instr == 1 && bb->instr[bb->num_instr-1].e->type == E_RETURN));
 }
 
 static Exp *GetReturnExp(BasicBlock *bb)
@@ -2840,27 +2840,33 @@ void Analyzer::CheckAnteriorLineDirectives()
 
 void Analyzer::Run()
 {
+	msg("test1\n");
 	BasicBlock *bb, *last = NULL;
 	for(bb=_list;bb; bb=bb->next) last = bb;
 
+	msg("test2\n");
 	// remove function prologue/epilogue code
 	RemoveFunctionPrologueCode(_list, last);
 
+	msg("test3\n");
 	_callconv = GetCallingConventionFor(_list->base);
 	if (_callconv) {
 		_returns = !!(_callconv & CC_RET);
 	}
 
+	msg("test4\n");
 	// Check if there are any anterior line directives
 	CheckAnteriorLineDirectives();
 
+	msg("test5\n");
 	InsertReturnStatements(_returns);
 
+	msg("test6\n");
 	for(BasicBlock *x=_list; x; x=x->next) ValidateRefs(_list,x);
 
-
+	msg("test7\n");
 	for(int i=0; i!=100; i++) {
-//		msg("\n\n---Loop %d\n", i);
+		msg("\n\n---Loop %d\n", i);
 
 		size_t siz = _exp_pool.GetSize();
 
