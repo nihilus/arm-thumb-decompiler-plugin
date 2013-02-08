@@ -208,42 +208,52 @@ static SwitchStatement *TryCreateSwitchStatement(SwitchStatement *&ss, addr_t ea
 			return 0;
 
 	// If switch information is present in the database, use it for defaults
-	//switch_info_ex_t si;
-	//if ( get_switch_info_ex(ea, &si, sizeof(si)) > 0 )
-	//{
-	//      msg("si.jumps  = %08X\n",si.jumps);
-	//      msg("si.ncases  = %08X\n",si.ncases);
-	//      msg("si.jcases  = %08X\n",si.jcases);
-	//      msg("si.startea  = %08X\n",si.startea);
-	//      msg("si.elbase  = %08X\n",si.elbase);
-	//      msg("si.get_jtable_element_size()  = %08X\n",si.get_jtable_element_size());
-	//      msg("si.get_shift()  = %08X\n",si.get_shift());
-	//      msg("si.flags  = %08X\n",si.flags);
-	//      msg("si.values  = %08X\n",si.values);
-	//      msg("si.get_vtable_element_size()  = %08X\n",si.get_vtable_element_size());
-	//      msg("si.regnum  = %08X\n",si.regnum);
-	//      msg("si.regdtyp  = %08X\n",si.regdtyp);
-	//      msg("si.defjump  = %08X\n",si.defjump);
-	//      msg("si.cb  = %08X\n",si.cb);
-	//      msg("si.flags2  = %08X\n",si.flags2);
-	//      msg("si.is_indirect()  = %08X\n",si.is_indirect());
-	//      msg("si.is_subtract()  = %08X\n",si.is_subtract());
+	switch_info_ex_t si;
+	if ( get_switch_info_ex(ea, &si, sizeof(si)) > 0 )
+	{
+		//msg("si.jumps  = %08X\n",si.jumps);
+		//msg("si.ncases  = %08X\n",si.ncases);
+		//msg("si.jcases  = %08X\n",si.jcases);
+		//msg("si.startea  = %08X\n",si.startea);
+		//msg("si.elbase  = %08X\n",si.elbase);
+		//msg("si.get_jtable_element_size()  = %08X\n",si.get_jtable_element_size());
+		//msg("si.get_shift()  = %08X\n",si.get_shift());
+		//msg("si.flags  = %08X\n",si.flags);
+		//msg("si.values  = %08X\n",si.values);
+		//msg("si.get_vtable_element_size()  = %08X\n",si.get_vtable_element_size());
+		//msg("si.regnum  = %08X\n",si.regnum);
+		//msg("si.regdtyp  = %08X\n",si.regdtyp);
+		//msg("si.defjump  = %08X\n",si.defjump);
+		//msg("si.cb  = %08X\n",si.cb);
+		//msg("si.flags2  = %08X\n",si.flags2);
+		//msg("si.is_indirect()  = %08X\n",si.is_indirect());
+		//msg("si.is_subtract()  = %08X\n",si.is_subtract());
 
-	//      msg("get_switch_parent(ea)  = %08X\n",get_switch_parent(ea));
+		//msg("get_switch_parent(ea)  = %08X\n",get_switch_parent(ea));
 
-	//      switch_max = si.get_jtable_size();
-	//      jmptab_addr = si.jumps;
-	//      reg = si.regnum;
-	//      jmpSize = si.get_jtable_element_size();
+	    switch_max = si.get_jtable_size();
+	    jmptab_addr = si.jumps;
+	    reg = si.regnum;
+	    jmpSize = si.get_jtable_element_size();
 
-	//      msg("get_next_dref_from(jmptab_addr,ea)  = %08X\n",get_next_dref_from(jmptab_addr,ea));
-	//      msg("get_next_dref_to(jmptab_addr,ea)  = %08X\n",get_next_dref_to(jmptab_addr,ea));
-	//      msg("get_first_dref_to(jmptab_addr)  = %08X\n",get_first_dref_to(jmptab_addr));
+		//msg("get_next_dref_from(jmptab_addr,ea)  = %08X\n",get_next_dref_from(jmptab_addr,ea));
+		//msg("get_next_dref_to(jmptab_addr,ea)  = %08X\n",get_next_dref_to(jmptab_addr,ea));
+		//msg("get_first_dref_to(jmptab_addr)  = %08X\n",get_first_dref_to(jmptab_addr));
 
-	//      //This will only work if only one method uses this jump table (Which should be most of the time)
-	//      ea_start = get_first_dref_to(jmptab_addr);
-	//}
-	//else
+		//msg("get_next_dref_from(jmptab_addr,funcstart)  = %08X\n",get_next_dref_from(jmptab_addr,funcstart));
+		//msg("get_next_dref_to(jmptab_addr,funcstart)  = %08X\n",get_next_dref_to(jmptab_addr,funcstart));
+
+		addr_t adr_of_ldr = get_next_dref_to(jmptab_addr,funcstart); //LDR Ry, =jpt
+
+		if((get_word(adr_of_ldr-2) & 0xFF80) == 0x0080) //LSLS Rx, Rx, #2
+		ea_start = adr_of_ldr - 2;
+		else
+		ea_start = adr_of_ldr;
+
+	    //This will only work if only one method uses this jump table (Which should be most of the time)
+	    //ea_start = get_first_dref_to(jmptab_addr);
+	}
+	else
 	{
 		//If IDA PRO doesn't detect the jump table then try to detect it manually
 
