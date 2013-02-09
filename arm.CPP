@@ -15,7 +15,7 @@
 #include <kernwin.hpp>
 #include <netnode.hpp>
 #include <struct.hpp>
-
+#define DEBUGON 1
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -292,6 +292,8 @@ void toggle_comment()
 bool dodecomp(int entry)
 {
 
+	
+
 	HINSTANCE inst = LoadLibrary("plugins\\decomp.dll");
 	if (!inst) return false;
 
@@ -303,6 +305,50 @@ bool dodecomp(int entry)
 	((MyFunc*)*(void**)proc)(entry);
 
 	FreeLibrary(inst);
+#ifdef DEBUGON
+
+	hwnd = NULL;
+			if(0==form){  
+			form = create_tform("Decompiled view", &hwnd);
+			msg("form: %x\n", form);
+			  if ( hwnd == NULL )
+			  {
+				warning("Could not create custom view window\n"
+						"perhaps it is open?\n"
+						"Switching to it.");
+				form = find_tform("Decompiled view");
+				if ( form != NULL )
+				  switchto_tform(form, true);
+				else 
+					return 1;  
+			  }
+				// allocate block to hold info about our sample view
+		  sample_info_t *si = new sample_info_t;
+		  si->form = form;
+		  // prepare the data to display. we could prepare it on the fly too.
+		  // but for that we have to use our own custom place_t class decendant.
+		  for ( int i=0; i < qnumber(sample_text); i++ )
+		  {
+			si->sv.push_back(simpleline_t("")); // add empty line
+			si->sv.push_back(simpleline_t(sample_text[i].text));
+			si->sv.back().bgcolor = sample_text[i].color;
+		  }
+		  // create two place_t objects: for the minimal and maximal locations
+		  simpleline_place_t s1;
+		  simpleline_place_t s2(si->sv.size()-1);
+		  // create a custom viewer
+		  si->cv = create_custom_viewer("", (TWinControl *)form, &s1, &s2, &s1, 0, &si->sv);
+		  // set the handlers so we can communicate with it
+		  set_custom_viewer_handlers(si->cv, NULL, NULL, NULL, NULL, NULL, si);
+		  // also set the ui event callback
+		  hook_to_notification_point(HT_UI, ui_callback, si);
+		  // finally display the form on the screen
+		  open_tform(form, FORM_TAB|FORM_MENU|FORM_RESTORE);
+			}
+
+	}
+
+#endif
 	return true;
 }
 
