@@ -2154,10 +2154,10 @@ int Analyzer::EeDepth(EmittedEnt *ee)
 		case EE_WHILE:
 		case EE_REPEAT:
 		case EE_ENDLESS:
-			d = max(d, 1 + EeDepth(ee->loop.body));
+			d = std::max(d, 1 + EeDepth(ee->loop.body));
 			break;
 		case EE_IF:
-			d = max(d, 1 + max(EeDepth(ee->cond.left), EeDepth(ee->cond.right)));
+			d = std::max(d, 1 + std::max(EeDepth(ee->cond.left), EeDepth(ee->cond.right)));
 			break;
 		}
 	}
@@ -2210,7 +2210,7 @@ EmittedEnt *Analyzer::EmitCode2(BasicBlock *bb, BasicBlock *stopper)
 //			msg("%d: IF: flow=%d cond=%d ret=%d\n", bb->ord(), flow->ord(), cond->ord(), bb->if_follow->flow->ord());
 
 			if (IsReturn(cont) && flow->order > cond->order && (flow == cont || cond == cont) )
-				swap(flow,cond);
+				std::swap(flow,cond);
 
 			if (flow != cont) {
 				r->cond.negate = (flow == bb->flow);
@@ -2219,7 +2219,7 @@ EmittedEnt *Analyzer::EmitCode2(BasicBlock *bb, BasicBlock *stopper)
 					r->cond.right = EmitCode(cond, cont);
 
 					if (CompareDepth(EeDepth(r->cond.left) - EeDepth(r->cond.right), bb)) {
-						swap(r->cond.left, r->cond.right);
+						std::swap(r->cond.left, r->cond.right);
 						r->cond.negate ^= true;
 					}
 

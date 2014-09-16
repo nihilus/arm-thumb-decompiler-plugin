@@ -508,7 +508,7 @@ static char *DecodeAddress(ea_t ea, int &type)
 	char b[MAXNAMESIZE];
 	if (get_name_expr(cmd.ea, 0, ea, ea, b, sizeof(b)) == -1) return NULL;
 	type = GetTypeOf(ea);
-	return strdup(b);
+	return _strdup(b);
 }
 
 

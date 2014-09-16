@@ -257,7 +257,7 @@ bool make_manual(ea_t ea, int len, char *s)
 	if (*s == 0) {
 		if (oldlen) {
 			do_unknown_range(ea, oldlen, 0);
-			ua_code(ea);
+			create_insn(ea);
 		}
 		return true;
 	}
@@ -355,7 +355,7 @@ bool make_manual(ea_t ea, int len, char *s)
 
 	if (len != oldlen || nchain != pos + 1) {
 		do_unknown_range(ea, len > oldlen ? len : oldlen, 0);
-		ua_code(ea);
+		create_insn(ea);
 	}
 
 	return true;

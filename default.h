@@ -72,7 +72,7 @@ public:
 	}
 
 	int inline Append(const T &t) {
-		if (count >= alloc) Resize(max<size_t>(minsize, alloc * 2));
+		if (count >= alloc) Resize(std::max<size_t>(minsize, alloc * 2));
 		int r=count++;
 		mem[r] = t;
 		return r;
@@ -80,7 +80,7 @@ public:
 
 	T inline &Inject(size_t pos) {
 		assert(pos <= count);
-		if (count >= alloc) Resize(max<size_t>(minsize, alloc * 2));
+		if (count >= alloc) Resize(std::max<size_t>(minsize, alloc * 2));
 		memmove(&mem[pos + 1], &mem[pos], (count++ - pos) * sizeof(T));
 		return mem[pos];
 	}
@@ -96,7 +96,7 @@ public:
 	}
 
 	T inline &Append() {
-		if (count >= alloc) Resize(max<size_t>(minsize, alloc * 2));
+		if (count >= alloc) Resize(std::max<size_t>(minsize, alloc * 2));
 		return mem[count++];
 	}
 
