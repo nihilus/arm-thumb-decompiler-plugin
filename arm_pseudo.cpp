@@ -469,13 +469,14 @@ bool outop_pseudo(op_t *op)
 				OutLong(soff, 16);
 				out_tagoff(COLOR_ERROR);
 			} else {
-				char strucname[MAXNAMESIZE], membername[MAXNAMESIZE];
+				char membername[MAXNAMESIZE];
+				qstring strucname;
 
-				if ((get_struc_name(st->id,strucname,sizeof(strucname)) != -1) && 
+				if ((get_struc_name(&strucname, st->id) != -1) && 
 					(get_member_name(mem->id,membername,sizeof(membername)) != -1)) {
 
 					out_tagon(COLOR_DNAME);
-					out_snprintf("%s.%s", strucname,membername);
+					out_snprintf("%s.%s", strucname.c_str(),membername);
 					out_tagoff(COLOR_DNAME);
 
 					if (mem->soff != soff) {
@@ -718,15 +719,15 @@ void out_pseudo()
 
 			// print StructName.VarName.. OR.. <RED>Offs</RED>.. OR.. StructName.<RED>Offs</RED>
 			if (so.str.mb) {
-				char fullname[MAXNAMESIZE];
-				get_member_fullname(so.str.mb->id,fullname,sizeof(fullname));
-				OutLine(fullname);
+				qstring fullname;
+				get_member_fullname(&fullname, so.str.mb->id);
+				OutLine(fullname.c_str());
 				if (so.str.mb->soff != so.str.offs) { outhexnumpm(so.str.offs - so.str.mb->soff); }
 			} else {
 				if (so.str.st) {
-					char strucname[MAXNAMESIZE];
-					get_struc_name(so.str.st->id,strucname,sizeof(strucname));
-					OutLine(strucname);
+					qstring strucname;
+					get_struc_name(&strucname, so.str.st->id);
+					OutLine(strucname.c_str());
 					out_symbol('.');
 				}
 				out_tagon(COLOR_ERROR);

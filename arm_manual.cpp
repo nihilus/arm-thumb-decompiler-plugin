@@ -146,17 +146,17 @@ void out_manual()
 			s += sizeof(uint32) * 2;
 			if ((sp = get_struc(sid)) == NULL || (memb = get_best_fit_member(sp, offs)) == NULL) {
 				if (sp) {
-					char strucname[MAXNAMESIZE];
-					get_struc_name(sid,strucname,sizeof(strucname));
-					qsnprintf(tmp, sizeof(tmp), "%s.%u", strucname, offs);
+					qstring strucname;
+					get_struc_name(&strucname, sid);
+					qsnprintf(tmp, sizeof(tmp), "%s.%u", strucname.c_str(), offs);
 				} else {
 					qsnprintf(tmp, sizeof(tmp), "struc%X.%u", sid, offs);
 				}
 				out_line(tmp, COLOR_ERROR);
 			} else {
-				char fullname[MAXNAMESIZE];
-				get_member_fullname(memb->id,fullname,sizeof(fullname));
-				out_line(fullname, COLOR_DEFAULT);
+				qstring fullname;
+				get_member_fullname(&fullname, memb->id);
+				out_line(fullname.c_str(), COLOR_DEFAULT);
 			}
 		} else if (c == 10) {
 			term_output_buffer();
